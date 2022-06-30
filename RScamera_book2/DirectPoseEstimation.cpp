@@ -25,17 +25,18 @@ void DirectPoseEstimationSingleLayer(
     for (int iter = 0; iter < iterations; iter++)
     {
         jaco_accu.reset();
-        cv::parallel_for_(cv::Range(0, px_ref.size()),
-                          std::bind(&JacobianAccumulator::accumulate_jacobian, &jaco_accu, std::placeholders::_1));
-        std::cout << "0" << std::endl;
-        // jaco_accu.accumulate_jacobian();
+        // cv::parallel_for_(cv::Range(0, px_ref.size()),
+        //                   std::bind(&JacobianAccumulator::accumulate_jacobian,
+        //                             &jaco_accu,
+        //                             std::placeholders::_1));
+        jaco_accu.accumulate_jacobian();
 
         Matrix6d H = jaco_accu.hessian();
         Vector6d b = jaco_accu.bias();
 
         // solve update and put it into estimation
         Vector6d update = H.ldlt().solve(b);
-        ;
+
         T21 = Sophus::SE3d::exp(update) * T21;
         cost = jaco_accu.cost_func();
 

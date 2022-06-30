@@ -3,7 +3,7 @@
 #include <sophus/se3.hpp>
 // #include <boost/format.hpp>
 // #include <pangolin/pangolin.h>
-// #include <mutex>
+#include <mutex>
 
 #include "DirectPoseEstimation.h"
 
@@ -46,7 +46,24 @@ try
     // float depth_scale = get_depth_scale(profile.get_device());
 
     // start stream
-    pipe.start(cfg); //指示管道使用所请求的配置启动流
+    rs2::pipeline_profile selection = pipe.start(cfg); //指示管道使用所请求的配置启动流
+
+    // set emitter power
+    // rs2::device selected_device = selection.get_device();
+    auto &selected_device = dev;
+    auto depth_sensor = selected_device.first<rs2::depth_sensor>();
+    if (depth_sensor.supports(RS2_OPTION_EMITTER_ENABLED))
+    {
+        depth_sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 1.f); // Enable emitter
+        // depth_sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0.f); // Disable emitter
+    }
+    if (depth_sensor.supports(RS2_OPTION_LASER_POWER))
+    {
+        // Query min and max values:
+        auto range = depth_sensor.get_option_range(RS2_OPTION_LASER_POWER);
+        depth_sensor.set_option(RS2_OPTION_LASER_POWER, range.max); // Set max power
+        // depth_sensor.set_option(RS2_OPTION_LASER_POWER, 0.f);       // Disable laser
+    }
 
     // DirectMethod-related algorithm variable
     cv::Mat last_depth;

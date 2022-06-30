@@ -6,7 +6,16 @@ ch8_slambook1/data/
 ch8_slambook2/.vscode/
 ch8_slambook2/build/
 
-RScamera/.vscode/
-RScamera/build/
+RScamera_book1/.vscode/
+RScamera_book1/build/
+
+RScamera_book2/.vscode/
+RScamera_book2/build/
+
+separate_book1/.vscode/
+separate_book1/build/
+
+separate_book2/.vscode/
+separate_book2/build/
 
 .vscode/

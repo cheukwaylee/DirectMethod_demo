@@ -18,9 +18,9 @@ double baseline = 0.573;
 // string disparity_file = "../disparity.png";
 // boost::format fmt_others("../%06d.png"); // other files
 
-string left_file = "/home/cw/thesis_dataset/d435i_py/dark/000012.png";
-string disparity_file = "/home/cw/thesis_dataset/d435i_py/dark/depth_000012.png";
-boost::format fmt_others("/home/cw/thesis_dataset/d435i_py/dark/%06d.png"); // other files
+string left_file = "/home/cw/thesis_dataset/d435i_py/dark_notIR/000012.png";
+string disparity_file = "/home/cw/thesis_dataset/d435i_py/dark_notIR/depth_000012.png";
+boost::format fmt_others("/home/cw/thesis_dataset/d435i_py/dark_notIR/%06d.png"); // other files
 
 // useful typedefs
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;

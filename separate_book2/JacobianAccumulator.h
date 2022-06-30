@@ -5,6 +5,7 @@
 
 #include <opencv2/opencv.hpp>
 #include <sophus/se3.hpp>
+// #include <pangolin/pangolin.h>
 #include <mutex>
 
 // using namespace std;
@@ -29,13 +30,19 @@ public:
         const cv::Mat &img2_,
         const VecVector2d &px_ref_,
         const std::vector<double> depth_ref_,
-        Sophus::SE3d &T21_);
+        Sophus::SE3d &T21_)
+        : img1(img1_), img2(img2_),
+          px_ref(px_ref_), depth_ref(depth_ref_),
+          T21(T21_)
+    {
+        projection = VecVector2d(px_ref.size(), Eigen::Vector2d(0, 0));
+    }
 
     ~JacobianAccumulator(){};
 
     /// accumulate jacobians in a range
     void accumulate_jacobian(const cv::Range &range);
-    // void accumulate_jacobian();
+    void accumulate_jacobian();
 
     /// get hessian matrix
     Matrix6d hessian() const { return H; }
