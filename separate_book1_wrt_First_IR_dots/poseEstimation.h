@@ -38,73 +38,8 @@ struct Measurement
     float grayscale;
 };
 
-struct RelativePoseResult
-{
-    RelativePoseResult(Eigen::Isometry3d Tcw, double tframe)
-        : Tcw_(Tcw), tframe_(tframe) {}
-
-    Eigen::Isometry3d Tcw_;
-    double tframe_;
-};
-
-//从关联文件中提取这些需要加载的图像的路径和时间戳
-void LoadImages(const string &strAssociationFilename,
-                vector<string> &vstrImageFilenamesRGB,
-                vector<string> &vstrImageFilenamesD,
-                vector<double> &vTimestamps);
-
-// inline void pickMeasurement(
-//     const cv::Mat &last_left,
-//     const cv::Mat &last_depth,
-//     cv::RNG &rng,
-//     std::vector<Measurement> &measurements,
-//     bool usingFAST = false,
-//     int nPoints = 2000, int boarder = 20)
-// {
-//     measurements.clear();
-
-//     if (usingFAST)
-//     {
-//         std::vector<cv::KeyPoint> keypoints;
-//         cv::Ptr<cv::FastFeatureDetector> detector = cv::FastFeatureDetector::create();
-//         detector->detect(last_left, keypoints);
-//         for (auto kp : keypoints)
-//         {
-//             // 去掉邻近边缘处的点
-//             if (kp.pt.x < boarder || kp.pt.y < boarder ||
-//                 (kp.pt.x + boarder) > last_left.cols ||
-//                 (kp.pt.y + boarder) > last_left.rows)
-//                 continue;
-//             ushort d = last_depth.ptr<ushort>(cvRound(kp.pt.y))[cvRound(kp.pt.x)];
-//             if (d == 0)
-//                 continue;
-//             d /= 5000;
-//             Eigen::Vector3d p3d = project2Dto3D(kp.pt.x, kp.pt.y, d, fx, fy, cx, cy, 1.0f);
-//             float grayscale = float(last_left.ptr<uchar>(cvRound(kp.pt.y))[cvRound(kp.pt.x)]);
-//             measurements.push_back(Measurement(p3d, grayscale));
-//         }
-//     }
-//     else // using random
-//     {
-//         for (int i = 0; i < nPoints; i++)
-//         {
-//             int x = rng.uniform(boarder, last_left.cols - boarder); // don't pick pixels close to boarder
-//             int y = rng.uniform(boarder, last_left.rows - boarder); // don't pick pixels close to boarder
-//             // int disparity = disparity_img.at<uchar>(y, x);
-//             // double depth = fx * baseline / disparity; // you know this is disparity to depth
-//             ushort d = last_depth.ptr<ushort>(y)[x];
-//             if (d == 0)
-//                 continue;
-//             d /= 5000;
-//             Eigen::Vector3d p3d = project2Dto3D(x, y, d, fx, fy, cx, cy, 1.0f);
-//             float grayscale = float(last_left.ptr<uchar>(y)[x]);
-//             measurements.push_back(Measurement(p3d, grayscale));
-//         }
-//     }
-// }
-
 inline Eigen::Vector3d project2Dto3D(
-    int x, int y, float d,
+    int x, int y, int d,
     float fx, float fy, float cx, float cy, float scale)
 {
     float zz = float(d) / scale;

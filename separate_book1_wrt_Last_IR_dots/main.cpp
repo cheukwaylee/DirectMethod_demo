@@ -33,74 +33,21 @@
 #include "poseEstimation.h"
 #include "Converter.h"
 
+// visualize trajectory
+#include <pangolin/pangolin.h>
+
 using namespace std;
 using namespace g2o;
 
-// #define TUM1_fr1_xyz "../res_TUM1_fr1_xyz.txt"
-// #define ETH3d_plant_dark "../res_ETH3d_plant_dark.txt"
-#define ETH3d_einstein_global_light_changes_1 "../res_ETH3d_einstein_global_light_changes_1.txt"
-// #define ETH3d_einstein_global_light_changes_2 "../res_ETH3d_einstein_global_light_changes_2.txt"
-// #define ETH3d_einstein_global_light_changes_3 "../res_ETH3d_einstein_global_light_changes_3.txt"
+const string path_to_rgb = "/home/cw/thesis_dataset/d435i_py/20220705_test/20220705_231522";
+const string path_to_depth = path_to_rgb;
+const string strAssociationFilename = path_to_rgb + "/associated.txt"; // path_to_association
+const string traj_filename = "../res.txt";                             // output
 
-#ifdef ETH3d_einstein_global_light_changes_1
-#define ETH3d_parameter
-string path_to_rgb = "/home/cw/thesis_dataset/eth-3d/einstein_global_light_changes_1_mono/einstein_global_light_changes_1";
-string path_to_depth = "/home/cw/thesis_dataset/eth-3d/einstein_global_light_changes_1_rgbd/einstein_global_light_changes_1";
-string strAssociationFilename = path_to_depth + "/associated_low_bright.txt"; // path_to_association
-const string traj_filename = ETH3d_einstein_global_light_changes_1;           // output
-#endif                                                                        // ETH3d_einstein_global_light_changes_1
-
-#ifdef ETH3d_einstein_global_light_changes_2
-#define ETH3d_parameter
-string path_to_rgb = "/home/cw/thesis_dataset/eth-3d/einstein_global_light_changes_2_mono/einstein_global_light_changes_2";
-string path_to_depth = "/home/cw/thesis_dataset/eth-3d/einstein_global_light_changes_2_rgbd/einstein_global_light_changes_2";
-string strAssociationFilename = path_to_depth + "/associated.txt";  // path_to_association
-const string traj_filename = ETH3d_einstein_global_light_changes_2; // output
-#endif                                                              // ETH3d_einstein_global_light_changes_2
-
-#ifdef ETH3d_einstein_global_light_changes_3
-#define ETH3d_parameter
-string path_to_rgb = "/home/cw/thesis_dataset/eth-3d/einstein_global_light_changes_3_mono/einstein_global_light_changes_3";
-string path_to_depth = "/home/cw/thesis_dataset/eth-3d/einstein_global_light_changes_3_rgbd/einstein_global_light_changes_3";
-string strAssociationFilename = path_to_depth + "/associated.txt";  // path_to_association
-const string traj_filename = ETH3d_einstein_global_light_changes_3; // output
-#endif                                                              // ETH3d_einstein_global_light_changes_3
-
-#ifdef TUM1_fr1_xyz
-#define width 640 // TUM1
+#define width 640
 #define height 480
-// Camera intrinsics
-const double fx = 517.306408, fy = 516.469215,
-             cx = 318.643040, cy = 255.313989;
-// double baseline = 0.573; // baseline
-string strAssociationFilename = "../fr1_xyz.txt"; // path_to_association
-string path_to_rgb = "/home/cw/thesis_dataset/data_tum_rgbd/rgbd_dataset_freiburg1_xyz";
-string path_to_depth = "/home/cw/thesis_dataset/data_tum_rgbd/rgbd_dataset_freiburg1_xyz";
-const string traj_filename = TUM1_fr1_xyz; // output
-#endif                                     // TUM1_fr1_xyz
-
-#ifdef ETH3d_plant_dark
-#define ETH3d_parameter
-string strAssociationFilename = "/home/cw/thesis_dataset/eth-3d/plant_dark_rgbd/plant_dark/associated.txt"; // path_to_association
-string path_to_rgb = "/home/cw/thesis_dataset/eth-3d/plant_dark_mono/plant_dark";
-string path_to_depth = "/home/cw/thesis_dataset/eth-3d/plant_dark_rgbd/plant_dark";
-const string traj_filename = ETH3d_plant_dark; // output
-#endif                                         // ETH3d_plant_dark
-
-#ifdef ETH3d_parameter
-#define width 739 // ETH-3d
-#define height 458
-// Camera intrinsics
-const double fx = 726.28741455078, fy = 726.28741455078,
-             cx = 354.6496887207, cy = 186.46566772461;
-#endif // ETH3d_parameter
-
-// #define fps 30
-// paths
-// string left_file = "/home/cw/thesis_dataset/d435i_py/dark_notIR/000012.png";
-// string depth_file = "/home/cw/thesis_dataset/d435i_py/dark_notIR/depth_000012.png";
-// boost::format fmt_others("/home/cw/thesis_dataset/d435i_py/dark_notIR/%06d.png"); // other files
-//从命令行输入参数中得到关联文件的路径
+// Camera intrinsics // TODO d435i parameter
+double fx = 718.856, fy = 718.856, cx = 607.1928, cy = 185.2157;
 
 int main(int argc, char **argv)
 {
@@ -134,17 +81,14 @@ int main(int argc, char **argv)
     cv::Mat last_left;
     // let's randomly pick pixels in the first image and generate some 3d points in the first image's frame
     cv::RNG rng;
-    int nPoints = 3200;
-    int boarder = 15;
+    int nPoints = 3000;
+    int boarder = 8;
 
     std::vector<Measurement> measurements;
     Eigen::Matrix3f K;
     K << fx, 0.f, cx, 0.f, fy, cy, 0.f, 0.f, 1.0f;
 
-    std::vector<RelativePoseResult> vRelativePoseResult; // res
-    // cv::Mat last_left = cv::imread(left_file, 0);
-    // cv::Mat last_depth = cv::imread(depth_file, 0);
-    // measurements.clear();
+    std::vector<RelativePoseResult> vRelativePoseResult;            // res
     Eigen::Isometry3d T_curr_world = Eigen::Isometry3d::Identity(); // current wrt world
 
     for (int ni = 0; ni < nImages; ni++) // ni 当前正在处理第ni张图
@@ -154,7 +98,10 @@ int main(int argc, char **argv)
         cv::Mat pic_depth = cv::imread(path_to_depth + "/" + vstrImageFilenamesD[ni], CV_LOAD_IMAGE_UNCHANGED);
         double pic_left_timestamp = vTimestamps[ni];
 
-        cvtColor(pic_left, pic_left, cv::COLOR_RGB2GRAY);
+        if (pic_left.channels() == 3)
+        {
+            cvtColor(pic_left, pic_left, cv::COLOR_RGB2GRAY);
+        }
 
         if (last_depth.empty() || last_left.empty())
         {
@@ -168,27 +115,27 @@ int main(int argc, char **argv)
             //     false, nPoints, boarder);
             measurements.clear();
 
-            bool usingFAST = false;
+            const bool usingFAST = false;
             if (usingFAST)
             {
-                std::vector<cv::KeyPoint> keypoints;
-                cv::Ptr<cv::FastFeatureDetector> detector = cv::FastFeatureDetector::create();
-                detector->detect(last_left, keypoints);
-                for (auto kp : keypoints)
-                {
-                    // 去掉邻近边缘处的点
-                    if (kp.pt.x < boarder || kp.pt.y < boarder ||
-                        (kp.pt.x + boarder) > last_left.cols ||
-                        (kp.pt.y + boarder) > last_left.rows)
-                        continue;
-                    float d = last_depth.ptr<ushort>(cvRound(kp.pt.y))[cvRound(kp.pt.x)];
-                    if (d == 0)
-                        continue;
-                    d /= 5000;
-                    Eigen::Vector3d p3d = project2Dto3D(kp.pt.x, kp.pt.y, d, fx, fy, cx, cy, 1.0f);
-                    float grayscale = float(last_left.ptr<uchar>(cvRound(kp.pt.y))[cvRound(kp.pt.x)]);
-                    measurements.push_back(Measurement(p3d, grayscale));
-                }
+                // std::vector<cv::KeyPoint> keypoints;
+                // cv::Ptr<cv::FastFeatureDetector> detector = cv::FastFeatureDetector::create();
+                // detector->detect(last_left, keypoints);
+                // for (auto kp : keypoints)
+                // {
+                //     // 去掉邻近边缘处的点
+                //     if (kp.pt.x < boarder || kp.pt.y < boarder ||
+                //         (kp.pt.x + boarder) > last_left.cols ||
+                //         (kp.pt.y + boarder) > last_left.rows)
+                //         continue;
+                //     float d = last_depth.ptr<ushort>(cvRound(kp.pt.y))[cvRound(kp.pt.x)];
+                //     if (d == 0)
+                //         continue;
+                //     d /= 5000;
+                //     Eigen::Vector3d p3d = project2Dto3D(kp.pt.x, kp.pt.y, d, fx, fy, cx, cy, 1.0f);
+                //     float grayscale = float(last_left.ptr<uchar>(cvRound(kp.pt.y))[cvRound(kp.pt.x)]);
+                //     measurements.push_back(Measurement(p3d, grayscale));
+                // }
             }
             else // using random
             {
@@ -199,11 +146,11 @@ int main(int argc, char **argv)
                     // int disparity = disparity_img.at<uchar>(y, x);
                     // double depth = fx * baseline / disparity; // you know this is disparity to depth
                     float d = last_depth.ptr<ushort>(y)[x];
-                    if (d == 0)
-                        continue;
-                    d /= 5000;
-                    Eigen::Vector3d p3d = project2Dto3D(x, y, d, fx, fy, cx, cy, 1.0f);
                     float grayscale = float(last_left.ptr<uchar>(y)[x]);
+                    if (grayscale > 230 || d == 0)
+                        continue;
+                    // d /= 5000; // TODO d435i png sclar and depth?
+                    Eigen::Vector3d p3d = project2Dto3D(x, y, d, fx, fy, cx, cy, 1.0f);
                     measurements.push_back(Measurement(p3d, grayscale));
                 }
             }
@@ -250,11 +197,15 @@ int main(int argc, char **argv)
                 cv::circle(img_show, cv::Point2d(pixel_now(0, 0), pixel_now(1, 0) + height), 8, cv::Scalar(b, g, r), 2);
                 cv::line(img_show, cv::Point2d(pixel_prev(0, 0), pixel_prev(1, 0)), cv::Point2d(pixel_now(0, 0), pixel_now(1, 0) + height), cv::Scalar(b, g, r), 1);
 
-                cv::circle(img_res, cv::Point2f(pixel_now[0], pixel_now[1]), 2, cv::Scalar(0, 250, 0), 2);
-                cv::line(img_res, cv::Point2f(pixel_prev[0], pixel_prev[1]), cv::Point2f(pixel_now[0], pixel_now[1]),
+                cv::circle(img_res,
+                           cv::Point2f(pixel_now[0], pixel_now[1]), 1,
+                           cv::Scalar(0, 250, 0), 1);
+                cv::line(img_res,
+                         cv::Point2f(pixel_prev[0], pixel_prev[1]),
+                         cv::Point2f(pixel_now[0], pixel_now[1]),
                          cv::Scalar(0, 250, 0));
             }
-            cv::imshow("matching", img_show);
+            // cv::imshow("matching", img_show);
             cv::imshow("tracking", img_res);
             cv::waitKey(1);
         }
@@ -284,10 +235,6 @@ int main(int argc, char **argv)
         cv::Mat Rwc = Tcw.rowRange(0, 3).colRange(0, 3).t();
         //以及平移向量
         cv::Mat twc = -Rwc * Tcw.rowRange(0, 3).col(3);
-        // const float random_range = 0.0;
-        // twc.at<float>(0) = rng.uniform(-random_range, random_range);
-        // twc.at<float>(1) = rng.uniform(-random_range, random_range);
-        // twc.at<float>(2) = rng.uniform(-random_range, random_range);
         //用四元数表示旋转
         vector<float> q = ORB_SLAM2::Converter::toQuaternion(Rwc);
         //然后按照给定的格式输出到文件中
