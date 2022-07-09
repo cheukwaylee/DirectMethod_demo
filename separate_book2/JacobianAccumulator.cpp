@@ -16,7 +16,10 @@ void JacobianAccumulator::accumulate_jacobian(const cv::Range &range)
         // compute the projection in the second image
         // 参考帧的pixel + 对应深度 --> 参考帧的空间三维点
         Eigen::Vector3d point_ref =
-            depth_ref[i] * Eigen::Vector3d((px_ref[i][0] - cx) / fx, (px_ref[i][1] - cy) / fy, 1);
+            depth_ref[i] * Eigen::Vector3d((px_ref[i][0] - cx) / fx,
+                                           (px_ref[i][1] - cy) / fy,
+                                           1);
+
         // 参考帧恢复的空间三维点 经过前后帧变换 --> 当前帧的空间三维点
         Eigen::Vector3d point_cur = T21 * point_ref;
         if (point_cur[2] < 0) // depth invalid
@@ -28,6 +31,7 @@ void JacobianAccumulator::accumulate_jacobian(const cv::Range &range)
         if (u < half_patch_size || u > img2.cols - half_patch_size ||
             v < half_patch_size || v > img2.rows - half_patch_size)
             continue;
+
         // 参考帧的pixel 经过T21之后 重投影到当前帧的pixel
         projection[i] = Eigen::Vector2d(u, v);
 
@@ -35,16 +39,18 @@ void JacobianAccumulator::accumulate_jacobian(const cv::Range &range)
                Z2 = Z * Z, Z_inv = 1.0 / Z, Z2_inv = Z_inv * Z_inv;
         cnt_good++;
 
-        // and compute error and jacobian
+        // and compute error and jacobian in a PATCH
         for (int x = -half_patch_size; x <= half_patch_size; x++)
             for (int y = -half_patch_size; y <= half_patch_size; y++)
             {
+                // error = reference frame's（锚点灰度） - current(to be optimized)
                 double error = GetPixelValue(img1, px_ref[i][0] + x, px_ref[i][1] + y) -
                                GetPixelValue(img2, u + x, v + y);
+
                 Matrix26d J_pixel_xi;
                 Eigen::Vector2d J_img_pixel;
 
-                J_pixel_xi(0, 0) = fx * Z_inv;
+                J_pixel_xi(0, 0) = fx * Z_inv; // same as the slambook2
                 J_pixel_xi(0, 1) = 0;
                 J_pixel_xi(0, 2) = -fx * X * Z2_inv;
                 J_pixel_xi(0, 3) = -fx * X * Y * Z2_inv;

@@ -165,16 +165,16 @@ int main(int argc, char **argv)
                      cv::Scalar(b, g, r), 1);
 
             cv::circle(img_res,
-                       cv::Point2f(pixel_now[0], pixel_now[1]), 2,
-                       cv::Scalar(0, 250, 0), 2);
+                       cv::Point2f(pixel_now[0], pixel_now[1]), 1,
+                       cv::Scalar(0, 250, 0), 1);
             cv::line(img_res,
                      cv::Point2f(pixel_prev[0], pixel_prev[1]),
                      cv::Point2f(pixel_now[0], pixel_now[1]),
                      cv::Scalar(0, 250, 0));
         }
-        cv::imshow("matching", img_show);
+        // cv::imshow("matching", img_show);
         cv::imshow("tracking", img_res);
-        cv::waitKey(1);
+        cv::waitKey();
 
         // Display in a GUI
         // cv::namedWindow("Display Image", cv::WINDOW_AUTOSIZE);

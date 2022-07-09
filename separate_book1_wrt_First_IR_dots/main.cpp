@@ -218,9 +218,9 @@ int main(int argc, char **argv)
                      cv::Point2f(pixel_now[0], pixel_now[1]),
                      cv::Scalar(0, 250, 0));
         }
-        cv::imshow("matching", img_show);
+        // cv::imshow("matching", img_show);
         cv::imshow("tracking", img_res);
-        cv::waitKey();
+        cv::waitKey(1);
 
         // Display in a GUI
         // cv::namedWindow("Display Image", cv::WINDOW_AUTOSIZE);
